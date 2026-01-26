@@ -1,35 +1,12 @@
-# TrustMeBro Capital 🤡
+# TrustMeBro Bot
 
 <div align="center">
   <img src="assets/logo.jpg" alt="TrustMeBro Capital Logo" width="200"/>
   <br>
 </div>
 
-> **"Financial advice not included. Refund not available."**
-> **「不含投資建議，概不退款。」**
-
-Welcome to **TrustMeBro Capital**, the world's most reliable source of completely unreliable financial information. We leverage high-frequency Rust algorithms to deliver gut-feeling analytics at the speed of light.
-
-歡迎來到 **信我兄弟資本**，這是世界上最可靠的「完全不可靠金融信息」來源。我們利用高頻 Rust 算法，以光速傳遞基於直覺的市場分析。
-
-## 🚀 Why Rust? (為什麼用 Rust?)
-Because we need to lose money *faster* than the other guys.
-因為我們需要比別人虧錢虧得*更快*。
-
-## 🛠 Features (核心功能)
-
-### 📊 Real-Time Market Data (Powered by Tiingo)
-*   **/price <ticker>**: Check current prices for Crypto and Stocks (e.g., `/price btcusd`, `/price TSLA`).
-*   **/chart <ticker>**: Generate beautiful price history charts on the fly.
-*   **/alert <ticker> <price>**: Set price alerts so you never miss a liquidation.
-
-### 📰 News Feed
-*   **Auto-News**: Automatically posts the latest crypto/financial news to your designated channel.
-*   **Smart Filtering**: Filters out duplicate stories and specific tickers.
-
-### 🤡 "Analyst" Tools
-*   **/signal**: Generates a "professional" buy/sell signal based on our advanced RNG algorithm.
-*   **/verify**: Confirms our "insider" sources (e.g., "My uncle works at Bitcoin").
+# Overview
+TrustMeBro is a Discord bot that integrates with the **Tiingo** API to provide real market data, alerts, charts, and news. Joke commands have been removed; the bot now focuses on actionable features only.
 
 ## 📂 Project Structure (項目結構)
 
@@ -47,11 +24,10 @@ TrustMeBro/
 └── .env                # Secrets (Not committed)
 ```
 
-## ⚙️ Setup (如何跑起來)
+## ⚙️ Setup
 
 ### Prerequisites
 - [Rust](https://www.rust-lang.org/tools/install) (latest stable)
-- A sense of humor (Required)
 - A [Tiingo API Key](https://www.tiingo.com/) (Free/Pro)
 
 ### Installation
@@ -74,6 +50,12 @@ TrustMeBro/
    ```bash
    cargo run --release
    ```
+
+## 🧭 Commands
+- `/price <ticker>`: Get the latest price (stocks or crypto) from Tiingo.
+- `/chart <ticker>`: Generate and return a recent price chart.
+- `/alert <ticker> <price>`: Set a price alert; you will be pinged when triggered.
+- (Auto) News: Latest Tiingo news is posted to the configured channel.
 
 ## 🤝 Contributing
 Pull requests are welcome. If you fix a bug, you're hired (unpaid intern).

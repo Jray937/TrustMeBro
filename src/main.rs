@@ -4,7 +4,6 @@ mod charts;
 mod alerts;
 
 use poise::serenity_prelude as serenity;
-use rand::Rng;
 use tracing::{info, error};
 use std::sync::{Arc, Mutex};
 use alerts::{Alert, AlertCondition};
@@ -143,55 +142,14 @@ async fn alert(
 /// 顯示關於 TrustMeBro 的信息
 #[poise::command(slash_command, prefix_command)]
 async fn help(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.say("TrustMeBro Capital: Financial advice not included. Refund not available.").await?;
-    Ok(())
-}
-
-/// 獲取一個極其專業的（隨機）交易信號
-#[poise::command(slash_command, prefix_command)]
-async fn signal(
-    ctx: Context<'_>, 
-    #[description = "The asset to analyze (e.g. BTC, TSLA)"] asset: String
-) -> Result<(), Error> {
-    // Generate random values in a block to ensure rng is dropped before await
-    let (choice, leverage) = {
-        let directions = ["LONG 🚀", "SHORT 📉", "HODL 💎", "PANIC SELL 🔥"];
-        let mut rng = rand::thread_rng();
-        (
-            directions[rng.gen_range(0..directions.len())],
-            rng.gen_range(1..=125)
-        )
-    };
-    
-    let response = format!(
-        "**Analyst Report for ${}**\n\
-        Source: *Trust Me Bro*\n\
-        Signal: **{}**\n\
-        Recommended Leverage: **{}x**\n\
-        Confidence: **100%** (Margin of error: +/- 100%)",
-        asset.to_uppercase(), choice, leverage
-    );
-    
-    ctx.say(response).await?;
-    Ok(())
-}
-
-/// 驗證我們的內幕消息來源
-#[poise::command(slash_command, prefix_command)]
-async fn verify(ctx: Context<'_>) -> Result<(), Error> {
-    let excuse = {
-        let excuses = [
-            "My uncle works at Bitcoin.",
-            "I saw it in a dream.",
-            "The tea leaves said so.",
-            "An Uber driver told me.",
-            "ChatGPT hallucinated it."
-        ];
-        let mut rng = rand::thread_rng();
-        excuses[rng.gen_range(0..excuses.len())]
-    };
-    
-    ctx.say(format!("✅ Source Verified: *{}*", excuse)).await?;
+    ctx.say(
+        "TrustMeBro Bot commands:\n\
+        - /price <ticker>: current price via Tiingo\n\
+        - /chart <ticker>: latest price chart\n\
+        - /alert <ticker> <price>: set a price alert\n\
+        News updates are posted automatically to the configured channel.",
+    )
+    .await?;
     Ok(())
 }
 
@@ -219,11 +177,11 @@ async fn main() {
 
     // Clone for the closure
     let alerts_for_setup = alerts.clone();
-    let tiingo_key_for_setup = tiingo_key.clone();
+        let tiingo_key_for_setup = tiingo_key.clone();
 
-    let framework = poise::Framework::builder()
-        .options(poise::FrameworkOptions {
-            commands: vec![help(), signal(), verify(), price(), chart(), alert()],
+        let framework = poise::Framework::builder()
+            .options(poise::FrameworkOptions {
+                commands: vec![help(), price(), chart(), alert()],
             ..Default::default()
         })
         .setup(move |ctx, _ready, framework| {
