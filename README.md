@@ -1,5 +1,10 @@
 # TrustMeBro Capital 🤡
 
+<div align="center">
+  <img src="assets/logo.jpg" alt="TrustMeBro Capital Logo" width="200"/>
+  <br>
+</div>
+
 > **"Financial advice not included. Refund not available."**
 > **「不含投資建議，概不退款。」**
 
@@ -26,6 +31,22 @@ Because we need to lose money *faster* than the other guys.
 *   **/signal**: Generates a "professional" buy/sell signal based on our advanced RNG algorithm.
 *   **/verify**: Confirms our "insider" sources (e.g., "My uncle works at Bitcoin").
 
+## 📂 Project Structure (項目結構)
+
+```
+TrustMeBro/
+├── assets/             # Images and static assets
+│   └── logo.jpg        # Our prestigious logo
+├── src/
+│   ├── main.rs         # Entry point & command registration
+│   ├── news.rs         # News fetching & Discord formatting logic
+│   ├── market.rs       # Tiingo API integration (Price/History)
+│   ├── charts.rs       # Chart generation using 'plotters'
+│   └── alerts.rs       # Background price monitoring system
+├── Cargo.toml          # Dependencies
+└── .env                # Secrets (Not committed)
+```
+
 ## ⚙️ Setup (如何跑起來)
 
 ### Prerequisites
@@ -37,7 +58,7 @@ Because we need to lose money *faster* than the other guys.
 
 1. **Clone the Repo**
    ```bash
-   git clone https://github.com/yourusername/TrustMeBro.git
+   git clone https://github.com/Jray937/TrustMeBro.git
    cd TrustMeBro
    ```
 
