@@ -192,9 +192,21 @@ async fn main() {
                 // Spawn the background news monitor
                 let http = ctx.http.clone();
                 let key_for_news = tiingo_key.clone();
-                let tickers = Some(vec!["crypto".to_string()]); 
+                
+                // Monitor specific tags for broad market coverage
+                // Covers: Precious Metals, US Bonds, US Stocks, Japan, Korea, Emerging Markets, Crypto
+                let tags = Some(vec![
+                    "minerals".to_string(), "metals".to_string(), "gold".to_string(), "silver".to_string(), // Precious Metals
+                    "bonds".to_string(), "treasury".to_string(), "interest rates".to_string(), // US Bonds/Rates
+                    "US".to_string(), "equity".to_string(), "stocks".to_string(), // US Stocks/General Equities
+                    "Japan".to_string(), "South Korea".to_string(), // Specific Countries
+                    "emerging markets".to_string(), // Emerging Markets
+                    "crypto".to_string(), "cryptocurrency".to_string(), "bitcoin".to_string() // Crypto
+                ]);
+                let tickers = None; // Don't filter by specific tickers to get broader news based on tags
+
                 tokio::spawn(async move {
-                    news::monitor_news(http, key_for_news, news_channel_id, tickers).await;
+                    news::monitor_news(http, key_for_news, news_channel_id, tickers, tags).await;
                 });
 
                 // Spawn the background alert monitor

@@ -2,26 +2,37 @@ use serde::Deserialize;
 use reqwest::Client;
 use std::error::Error;
 
+use tracing::{error, warn};
+
 #[derive(Debug, Deserialize)]
+#[allow(non_snake_case)] // Tiingo API fields
+#[allow(dead_code)]      // Fields used for deserialization mapping but not logic
 pub struct StockPrice {
     pub ticker: String,
-    pub last: f64,
-    pub tms: String, // timestamp
+    pub last: Option<f64>, 
+    pub tms: Option<String>, 
     pub open: Option<f64>,
     pub high: Option<f64>,
     pub low: Option<f64>,
     pub prevClose: Option<f64>,
+    // Extended Hours Fields
+    pub askPrice: Option<f64>,  // Real-time ask (extended hours)
+    pub bidPrice: Option<f64>,  // Real-time bid (extended hours)
+    pub mid: Option<f64>,       // Mid price (often good proxy if last is stale)
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(non_snake_case)] // Tiingo API fields
+#[allow(dead_code)]      // Fields used for deserialization mapping but not logic
 pub struct CryptoPrice {
     pub ticker: String,
-    pub lastPrice: f64, // Note: Tiingo crypto uses lastPrice
-    pub quoteTimestamp: String,
+    pub lastPrice: Option<f64>, // Changed to Option
+    pub quoteTimestamp: Option<String>,
 }
 
 // Unified struct for our bot to use
 #[derive(Debug)]
+#[allow(dead_code)] // Fields populated but not all are strictly read in current commands
 pub struct AssetPrice {
     pub ticker: String,
     pub price: f64,
@@ -30,27 +41,55 @@ pub struct AssetPrice {
 }
 
 pub async fn get_price(client: &Client, api_key: &str, ticker: &str) -> Result<AssetPrice, Box<dyn Error + Send + Sync>> {
-    // Try Crypto first (simple heuristic: generic error handling flow)
-    // Actually, let's just try both or use a heuristic. 
-    // Tiingo format: "btcusd" is crypto, "aapl" is stock.
-    
     // Attempt IEX (Stock) first as it's common
     let iex_url = format!("https://api.tiingo.com/iex/?tickers={}&token={}", ticker, api_key);
     let iex_res = client.get(&iex_url).send().await?;
     
     if iex_res.status().is_success() {
         let text = iex_res.text().await?;
-        // IEX returns an array: [{"ticker":"AAPL", ...}]
-        if let Ok(prices) = serde_json::from_str::<Vec<StockPrice>>(&text) {
-            if let Some(p) = prices.first() {
-                return Ok(AssetPrice {
-                    ticker: p.ticker.clone(),
-                    price: p.last,
-                    prev_close: p.prevClose,
-                    is_crypto: false,
-                });
+        match serde_json::from_str::<Vec<StockPrice>>(&text) {
+            Ok(prices) => {
+                if let Some(p) = prices.first() {
+                    // Prefer 'last', fallback to 'mid', 'askPrice' (if reasonable), 'prevClose', then 'open'
+                    // In extended hours, last might be stale, so mid/ask/bid are useful.
+                    let mut price = p.last;
+                    
+                    // If last is missing, try mid
+                    if price.is_none() {
+                        price = p.mid;
+                    }
+                    
+                    // If still missing, try ask (often indicates current liquidity)
+                    if price.is_none() {
+                        price = p.askPrice;
+                    }
+
+                    // Fallback to previous close or open
+                    if price.is_none() {
+                        price = p.prevClose.or(p.open);
+                    }
+                    
+                    if let Some(current_price) = price {
+                        return Ok(AssetPrice {
+                            ticker: p.ticker.clone(),
+                            price: current_price,
+                            prev_close: p.prevClose,
+                            is_crypto: false,
+                        });
+                    } else {
+                        warn!("IEX response for {} had no valid price fields. Data: {:?}", ticker, p);
+                    }
+                } else {
+                    // Empty array means ticker might not be supported on IEX or invalid
+                    // Don't error yet, try Crypto
+                }
+            },
+            Err(e) => {
+                error!("Failed to parse IEX response for {}: {}. Raw text: {}", ticker, e, text);
             }
         }
+    } else {
+        error!("IEX API Error for {}: Status {}", ticker, iex_res.status());
     }
 
     // Fallback to Crypto
@@ -60,14 +99,24 @@ pub async fn get_price(client: &Client, api_key: &str, ticker: &str) -> Result<A
     if crypto_res.status().is_success() {
         let text = crypto_res.text().await?;
         // Crypto returns array: [{"ticker":"btcusd", "lastPrice": ...}]
-        if let Ok(prices) = serde_json::from_str::<Vec<CryptoPrice>>(&text) {
-            if let Some(p) = prices.first() {
-                return Ok(AssetPrice {
-                    ticker: p.ticker.clone(),
-                    price: p.lastPrice,
-                    prev_close: None, // Crypto doesn't always give 24h prev close easily in this endpoint, simplifying for now
-                    is_crypto: true,
-                });
+        match serde_json::from_str::<Vec<CryptoPrice>>(&text) {
+            Ok(prices) => {
+                if let Some(p) = prices.first() {
+                    if let Some(price) = p.lastPrice {
+                        return Ok(AssetPrice {
+                            ticker: p.ticker.clone(),
+                            price: price,
+                            prev_close: None, 
+                            is_crypto: true,
+                        });
+                    } else {
+                        warn!("Crypto response for {} had no lastPrice. Data: {:?}", ticker, p);
+                    }
+                }
+            },
+            Err(e) => {
+                // Only log error if IEX also failed/was empty, effectively meaning we couldn't find it anywhere
+                error!("Failed to parse Crypto response for {}: {}. Raw text: {}", ticker, e, text);
             }
         }
     }
@@ -113,12 +162,13 @@ pub async fn get_historical_data(client: &Client, api_key: &str, ticker: &str) -
         // [{"ticker": "btcusd", "priceData": [...]}]
         #[derive(Deserialize)]
         struct CryptoHistoryResponse {
-            priceData: Vec<HistoricalData>
+            #[serde(rename = "priceData")]
+            price_data: Vec<HistoricalData>
         }
         
         if let Ok(wrapper) = serde_json::from_str::<Vec<CryptoHistoryResponse>>(&text) {
             if let Some(first) = wrapper.first() {
-                return Ok(serde_json::from_value(serde_json::to_value(&first.priceData)?)?);
+                return Ok(serde_json::from_value(serde_json::to_value(&first.price_data)?)?);
             }
         }
     }

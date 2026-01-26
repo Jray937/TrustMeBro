@@ -7,6 +7,7 @@ use tracing::{error, info};
 use chrono::{DateTime, Utc};
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)] // tags are currently fetched but not explicitly used in logic other than debug prints
 struct NewsArticle {
     title: String,
     url: String,
@@ -19,23 +20,26 @@ struct NewsArticle {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // Response wrapper might be useful later
 struct NewsResponse(Vec<NewsArticle>);
 
 pub async fn monitor_news(
     http: Arc<serenity::Http>, 
     api_key: String, 
     channel_id: u64,
-    tickers: Option<Vec<String>>
+    tickers: Option<Vec<String>>,
+    tags: Option<Vec<String>>,
 ) {
     let mut last_seen_time = Utc::now() - chrono::Duration::hours(1); // Start checking from 1 hour ago
     let channel = serenity::ChannelId::new(channel_id);
     let client = reqwest::Client::new();
 
-    let ticker_log = tickers.clone().map(|t| t.join(", ")).unwrap_or_else(|| "All".to_string());
-    info!("Starting news monitor for channel {} (Tickers: {})...", channel_id, ticker_log);
+    let ticker_log = tickers.clone().map(|t| t.join(", ")).unwrap_or_else(|| "None".to_string());
+    let tag_log = tags.clone().map(|t| t.join(", ")).unwrap_or_else(|| "None".to_string());
+    info!("Starting news monitor for channel {} (Tickers: {}, Tags: {})...", channel_id, ticker_log, tag_log);
 
     loop {
-        match fetch_news(&client, &api_key, &tickers).await {
+        match fetch_news(&client, &api_key, &tickers, &tags).await {
             Ok(articles) => {
                 // Filter for new articles and sort them by date (oldest first) to send in order
                 let mut new_articles: Vec<NewsArticle> = articles
@@ -72,13 +76,20 @@ pub async fn monitor_news(
 async fn fetch_news(
     client: &reqwest::Client, 
     api_key: &str, 
-    tickers: &Option<Vec<String>>
+    tickers: &Option<Vec<String>>,
+    tags: &Option<Vec<String>>,
 ) -> Result<Vec<NewsArticle>, Box<dyn std::error::Error + Send + Sync>> {
     let mut url = format!("https://api.tiingo.com/tiingo/news?token={}&limit=50", api_key);
     
     if let Some(t) = tickers {
         if !t.is_empty() {
             url.push_str(&format!("&tickers={}", t.join(",")));
+        }
+    }
+
+    if let Some(t) = tags {
+        if !t.is_empty() {
+            url.push_str(&format!("&tags={}", t.join(",")));
         }
     }
 
