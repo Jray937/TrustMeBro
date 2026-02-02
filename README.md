@@ -1,64 +1,36 @@
-# TrustMeBro Bot
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-<div align="center">
-  <img src="assets/logo.jpg" alt="TrustMeBro Capital Logo" width="200"/>
-  <br>
-</div>
+## Getting Started
 
-# Overview
-TrustMeBro is a Discord bot that integrates with the **Tiingo** API to provide real market data, alerts, charts, and news. Joke commands have been removed; the bot now focuses on actionable features only.
+First, run the development server:
 
-## 📂 Project Structure (項目結構)
-
-```
-TrustMeBro/
-├── assets/             # Images and static assets
-│   └── logo.jpg        # Our prestigious logo
-├── src/
-│   ├── main.rs         # Entry point & command registration
-│   ├── news.rs         # News fetching & Discord formatting logic
-│   ├── market.rs       # Tiingo API integration (Price/History)
-│   ├── charts.rs       # Chart generation using 'plotters'
-│   └── alerts.rs       # Background price monitoring system
-├── Cargo.toml          # Dependencies
-└── .env                # Secrets (Not committed)
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## ⚙️ Setup
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### Prerequisites
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
-- A [Tiingo API Key](https://www.tiingo.com/) (Free/Pro)
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-### Installation
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-1. **Clone the Repo**
-   ```bash
-   git clone https://github.com/Jray937/TrustMeBro.git
-   cd TrustMeBro
-   ```
+## Learn More
 
-2. **Environment Variables**
-   Create a `.env` file in the root directory. **DO NOT commit this file.**
-   ```bash
-   DISCORD_TOKEN=your_discord_bot_token_here
-   TIINGO_API_KEY=your_tiingo_api_key
-   NEWS_CHANNEL_ID=your_discord_channel_id_for_news
-   ```
+To learn more about Next.js, take a look at the following resources:
 
-3. **Run the Bot**
-   ```bash
-   cargo run --release
-   ```
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## 🧭 Commands
-- `/price <ticker>`: Get the latest price (stocks or crypto) from Tiingo.
-- `/chart <ticker>`: Generate and return a recent price chart.
-- `/alert <ticker> <price>`: Set a price alert; you will be pinged when triggered.
-- (Auto) News: Latest Tiingo news is posted to the configured channel.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## 🤝 Contributing
-Pull requests are welcome. If you fix a bug, you're hired (unpaid intern).
+## Deploy on Vercel
 
-## 📜 License
-MIT License. Do whatever you want, just don't sue us when you get liquidated.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

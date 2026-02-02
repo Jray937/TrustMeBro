@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* 
+  We are using Material UI for the main theming (see app/theme.ts).
+  Retaining Tailwind imports for utility classes if needed, 
+  but removing default Next.js color variables to prevent conflicts 
+  with the forced dark hacker theme.
+*/
