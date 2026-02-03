@@ -2,6 +2,30 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Prerequisites
+
+This application requires [Clerk](https://clerk.com) authentication. Before running the app, you need to:
+
+1. Create a Clerk account at [https://clerk.com](https://clerk.com)
+2. Create a new application in the Clerk dashboard
+3. Copy your API keys from the Clerk dashboard
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in your actual values:
+
+```bash
+cp .env.example .env
+```
+
+Then update the following variables in your `.env` file:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key (starts with `pk_test_` or `pk_live_`)
+- `CLERK_SECRET_KEY`: Your Clerk secret key (starts with `sk_test_` or `sk_live_`)
+- `NEXT_PUBLIC_API_URL`: Your backend API URL (default: `http://localhost:8787`)
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash
