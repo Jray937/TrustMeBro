@@ -2,6 +2,30 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Prerequisites
+
+This application requires [Clerk](https://clerk.com) authentication. Before running the app, you need to:
+
+1. Create a Clerk account at [https://clerk.com](https://clerk.com)
+2. Create a new application in the Clerk dashboard
+3. Copy your API keys from the Clerk dashboard
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in your actual values:
+
+```bash
+cp .env.example .env
+```
+
+Then update the following variables in your `.env` file:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key (starts with `pk_test_` or `pk_live_`)
+- `CLERK_SECRET_KEY`: Your Clerk secret key (starts with `sk_test_` or `sk_live_`)
+- `NEXT_PUBLIC_API_URL`: Your backend API URL (default: `http://localhost:8787`)
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash
@@ -18,7 +42,18 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Deploying to Cloudflare Pages
+
+When deploying to Cloudflare Pages, make sure to configure the following environment variables in your Cloudflare Pages project settings:
+
+1. Go to your Cloudflare Pages project dashboard
+2. Navigate to **Settings** > **Environment variables**
+3. Add the following variables for both **Production** and **Preview** environments:
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key (required at build time for client-side code)
+   - `CLERK_SECRET_KEY`: Your Clerk secret key (required at runtime for server-side authentication)
+   - `NEXT_PUBLIC_API_URL`: Your backend API URL
+
+**Note:** At minimum, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` must be configured for the build to succeed. The `CLERK_SECRET_KEY` is required at runtime for authentication to work properly.
 
 ## Learn More
 

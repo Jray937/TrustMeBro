@@ -6,3 +6,7 @@
   but removing default Next.js color variables to prevent conflicts 
   with the forced dark hacker theme.
 */
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
