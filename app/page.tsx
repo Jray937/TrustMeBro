@@ -75,6 +75,10 @@ export default function Home() {
   const [isLoadingHoldings, setIsLoadingHoldings] = useState(false);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [isAddingHolding, setIsAddingHolding] = useState(false);
+  const [isSearchingStocks, setIsSearchingStocks] = useState(false);
+  const [holdingsError, setHoldingsError] = useState<string | null>(null);
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [addHoldingError, setAddHoldingError] = useState<string | null>(null);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
@@ -82,6 +86,7 @@ export default function Home() {
   useEffect(() => {
     const fetchHoldings = async () => {
       setIsLoadingHoldings(true);
+      setHoldingsError(null);
       try {
         const token = await getToken();
         const response = await fetch(`${apiUrl}/api/holdings`, {
@@ -92,9 +97,12 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           setHoldings(data);
+        } else {
+          setHoldingsError(`Failed to fetch holdings: ${response.status} ${response.statusText}`);
         }
       } catch (error) {
         console.error('Error fetching holdings:', error);
+        setHoldingsError(error instanceof Error ? error.message : 'Unknown error occurred');
       } finally {
         setIsLoadingHoldings(false);
       }
@@ -107,6 +115,7 @@ export default function Home() {
   useEffect(() => {
     const fetchNews = async () => {
       setIsLoadingNews(true);
+      setNewsError(null);
       try {
         const token = await getToken();
         const response = await fetch(`${apiUrl}/api/news`, {
@@ -117,9 +126,12 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           setNews(data);
+        } else {
+          setNewsError(`Failed to fetch news: ${response.status} ${response.statusText}`);
         }
       } catch (error) {
         console.error('Error fetching news:', error);
+        setNewsError(error instanceof Error ? error.message : 'Unknown error occurred');
       } finally {
         setIsLoadingNews(false);
       }
@@ -133,9 +145,11 @@ export default function Home() {
     const searchStocks = async () => {
       if (searchQuery.length < 1) {
         setStockSearchResults([]);
+        setIsSearchingStocks(false);
         return;
       }
 
+      setIsSearchingStocks(true);
       try {
         const token = await getToken();
         const response = await fetch(`${apiUrl}/api/search?query=${encodeURIComponent(searchQuery)}`, {
@@ -146,9 +160,15 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           setStockSearchResults(data);
+        } else {
+          console.error(`Stock search failed: ${response.status}`);
+          setStockSearchResults([]);
         }
       } catch (error) {
         console.error('Error searching stocks:', error);
+        setStockSearchResults([]);
+      } finally {
+        setIsSearchingStocks(false);
       }
     };
 
@@ -163,6 +183,7 @@ export default function Home() {
   const handleAddHolding = async () => {
     if (newSymbol && newShares && newPrice) {
       setIsAddingHolding(true);
+      setAddHoldingError(null);
       try {
         const token = await getToken();
         const response = await fetch(`${apiUrl}/api/holdings`, {
@@ -194,9 +215,13 @@ export default function Home() {
           setNewSymbol(null);
           setNewShares('');
           setNewPrice('');
+        } else {
+          const errorText = await response.text();
+          setAddHoldingError(`Failed to add holding: ${response.status} ${errorText || response.statusText}`);
         }
       } catch (error) {
         console.error('Error adding holding:', error);
+        setAddHoldingError(error instanceof Error ? error.message : 'Unknown error occurred');
       } finally {
         setIsAddingHolding(false);
       }
@@ -350,6 +375,11 @@ export default function Home() {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Add New Holding
           </Typography>
+          {addHoldingError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setAddHoldingError(null)}>
+              {addHoldingError}
+            </Alert>
+          )}
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Autocomplete
               sx={{ flex: 1, minWidth: 200 }}
@@ -366,7 +396,7 @@ export default function Home() {
                   size="small"
                 />
               )}
-              loading={searchQuery.length > 0 && stockSearchResults.length === 0}
+              loading={isSearchingStocks}
               noOptionsText={searchQuery.length > 0 ? "No stocks found" : "Start typing to search"}
             />
             <TextField
@@ -404,6 +434,11 @@ export default function Home() {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Holdings
           </Typography>
+          {holdingsError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {holdingsError}
+            </Alert>
+          )}
           {isLoadingHoldings ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <CircularProgress />
@@ -462,6 +497,11 @@ export default function Home() {
             <ArticleIcon />
             Market News
           </Typography>
+          {newsError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {newsError}
+            </Alert>
+          )}
           {isLoadingNews ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <CircularProgress />
