@@ -42,7 +42,18 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Deploying to Cloudflare Pages
+
+When deploying to Cloudflare Pages, make sure to configure the following environment variables in your Cloudflare Pages project settings:
+
+1. Go to your Cloudflare Pages project dashboard
+2. Navigate to **Settings** > **Environment variables**
+3. Add the following variables for both **Production** and **Preview** environments:
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key
+   - `CLERK_SECRET_KEY`: Your Clerk secret key
+   - `NEXT_PUBLIC_API_URL`: Your backend API URL
+
+**Note:** The build will fail if these environment variables are not configured, as Clerk requires valid keys during the build process.
 
 ## Learn More
 
