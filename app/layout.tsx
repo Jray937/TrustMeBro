@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   description: "Secure. Anonymous. Profitable.",
 };
 
+// Force dynamic rendering for authentication
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
