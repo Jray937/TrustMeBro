@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import {
   Box,
   Drawer,
@@ -17,6 +18,8 @@ import {
   Paper,
   CircularProgress,
   Alert,
+  Autocomplete,
+  Link,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -28,11 +31,11 @@ import {
   MonitorHeart as HealthIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
+  Article as ArticleIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
 
-// Mock data for portfolio holdings
 interface Holding {
   id: string;
   symbol: string;
@@ -45,45 +48,158 @@ interface Holding {
   changePercent: number;
 }
 
-const mockHoldings: Holding[] = [
-  { id: '1', symbol: 'AAPL', name: 'Apple Inc.', shares: 50, avgPrice: 150, currentPrice: 175, value: 8750, change: 1250, changePercent: 16.67 },
-  { id: '2', symbol: 'GOOGL', name: 'Alphabet Inc.', shares: 30, avgPrice: 2800, currentPrice: 2950, value: 88500, change: 4500, changePercent: 5.36 },
-  { id: '3', symbol: 'MSFT', name: 'Microsoft Corp.', shares: 40, avgPrice: 300, currentPrice: 320, value: 12800, change: 800, changePercent: 6.67 },
-  { id: '4', symbol: 'TSLA', name: 'Tesla Inc.', shares: 25, avgPrice: 700, currentPrice: 680, value: 17000, change: -500, changePercent: -2.86 },
-  { id: '5', symbol: 'NVDA', name: 'NVIDIA Corp.', shares: 35, avgPrice: 450, currentPrice: 520, value: 18200, change: 2450, changePercent: 15.56 },
-];
+interface NewsItem {
+  id: string;
+  title: string;
+  source: string;
+  publishedAt: string;
+  url: string;
+}
+
+interface StockSearchResult {
+  symbol: string;
+  name: string;
+}
 
 export default function Home() {
+  const { getToken } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
-  const [holdings, setHoldings] = useState<Holding[]>(mockHoldings);
-  const [newSymbol, setNewSymbol] = useState('');
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [newSymbol, setNewSymbol] = useState<StockSearchResult | null>(null);
   const [newShares, setNewShares] = useState('');
+  const [newPrice, setNewPrice] = useState('');
+  const [stockSearchResults, setStockSearchResults] = useState<StockSearchResult[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingHoldings, setIsLoadingHoldings] = useState(false);
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
+  const [isAddingHolding, setIsAddingHolding] = useState(false);
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+
+  // Fetch holdings from backend
+  useEffect(() => {
+    const fetchHoldings = async () => {
+      setIsLoadingHoldings(true);
+      try {
+        const token = await getToken();
+        const response = await fetch(`${apiUrl}/api/holdings`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setHoldings(data);
+        }
+      } catch (error) {
+        console.error('Error fetching holdings:', error);
+      } finally {
+        setIsLoadingHoldings(false);
+      }
+    };
+
+    fetchHoldings();
+  }, [apiUrl, getToken]);
+
+  // Fetch news from backend
+  useEffect(() => {
+    const fetchNews = async () => {
+      setIsLoadingNews(true);
+      try {
+        const token = await getToken();
+        const response = await fetch(`${apiUrl}/api/news`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setNews(data);
+        }
+      } catch (error) {
+        console.error('Error fetching news:', error);
+      } finally {
+        setIsLoadingNews(false);
+      }
+    };
+
+    fetchNews();
+  }, [apiUrl, getToken]);
+
+  // Search for stock symbols
+  useEffect(() => {
+    const searchStocks = async () => {
+      if (searchQuery.length < 1) {
+        setStockSearchResults([]);
+        return;
+      }
+
+      try {
+        const token = await getToken();
+        const response = await fetch(`${apiUrl}/api/search?query=${encodeURIComponent(searchQuery)}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setStockSearchResults(data);
+        }
+      } catch (error) {
+        console.error('Error searching stocks:', error);
+      }
+    };
+
+    const timeoutId = setTimeout(searchStocks, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, apiUrl, getToken]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleAddHolding = () => {
-    if (newSymbol && newShares) {
-      const shares = parseFloat(newShares);
-      const mockPrice = Math.random() * 500 + 50;
-      const newHolding: Holding = {
-        id: Date.now().toString(),
-        symbol: newSymbol.toUpperCase(),
-        name: `${newSymbol.toUpperCase()} Company`,
-        shares: shares,
-        avgPrice: mockPrice,
-        currentPrice: mockPrice * (1 + (Math.random() * 0.2 - 0.1)),
-        value: shares * mockPrice,
-        change: 0,
-        changePercent: 0,
-      };
-      newHolding.change = newHolding.value - (newHolding.shares * newHolding.avgPrice);
-      newHolding.changePercent = (newHolding.change / (newHolding.shares * newHolding.avgPrice)) * 100;
-      setHoldings([...holdings, newHolding]);
-      setNewSymbol('');
-      setNewShares('');
+  const handleAddHolding = async () => {
+    if (newSymbol && newShares && newPrice) {
+      setIsAddingHolding(true);
+      try {
+        const token = await getToken();
+        const response = await fetch(`${apiUrl}/api/holdings`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            symbol: newSymbol.symbol,
+            shares: parseFloat(newShares),
+            avgPrice: parseFloat(newPrice),
+          }),
+        });
+
+        if (response.ok) {
+          // Refresh holdings list
+          const holdingsResponse = await fetch(`${apiUrl}/api/holdings`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (holdingsResponse.ok) {
+            const data = await holdingsResponse.json();
+            setHoldings(data);
+          }
+          
+          // Clear form
+          setNewSymbol(null);
+          setNewShares('');
+          setNewPrice('');
+        }
+      } catch (error) {
+        console.error('Error adding holding:', error);
+      } finally {
+        setIsAddingHolding(false);
+      }
     }
   };
 
@@ -235,13 +351,23 @@ export default function Home() {
             Add New Holding
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <TextField
-              label="Symbol"
-              variant="outlined"
-              size="small"
+            <Autocomplete
+              sx={{ flex: 1, minWidth: 200 }}
+              options={stockSearchResults}
+              getOptionLabel={(option) => `${option.symbol} - ${option.name}`}
               value={newSymbol}
-              onChange={(e) => setNewSymbol(e.target.value)}
-              sx={{ flex: 1, minWidth: 150 }}
+              onChange={(_, value) => setNewSymbol(value)}
+              onInputChange={(_, value) => setSearchQuery(value)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Stock Symbol"
+                  variant="outlined"
+                  size="small"
+                />
+              )}
+              loading={searchQuery.length > 0 && stockSearchResults.length === 0}
+              noOptionsText={searchQuery.length > 0 ? "No stocks found" : "Start typing to search"}
             />
             <TextField
               label="Shares"
@@ -250,14 +376,24 @@ export default function Home() {
               type="number"
               value={newShares}
               onChange={(e) => setNewShares(e.target.value)}
-              sx={{ flex: 1, minWidth: 150 }}
+              sx={{ flex: 1, minWidth: 120 }}
+            />
+            <TextField
+              label="Avg Price"
+              variant="outlined"
+              size="small"
+              type="number"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+              sx={{ flex: 1, minWidth: 120 }}
             />
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleAddHolding}
+              disabled={isAddingHolding || !newSymbol || !newShares || !newPrice}
             >
-              Add
+              {isAddingHolding ? 'Adding...' : 'Add'}
             </Button>
           </Box>
         </CardContent>
@@ -268,44 +404,106 @@ export default function Home() {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Holdings
           </Typography>
-          {holdings.map((holding) => (
-            <Box
-              key={holding.id}
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 2,
-                mb: 1,
-                backgroundColor: 'background.default',
-                borderRadius: 2,
-                marginTop: 2,
-              }}
-            >
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {holding.symbol}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {holding.name} • {holding.shares} shares
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  ${holding.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </Typography>
-                <Chip
-                  label={`${holding.changePercent >= 0 ? '+' : ''}${holding.changePercent.toFixed(2)}%`}
-                  size="small"
-                  sx={{
-                    backgroundColor: holding.changePercent >= 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: holding.changePercent >= 0 ? 'success.main' : 'error.main',
-                    fontWeight: 600,
-                  }}
-                />
-              </Box>
+          {isLoadingHoldings ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
             </Box>
-          ))}
+          ) : holdings.length === 0 ? (
+            <Typography color="text.secondary" sx={{ textAlign: 'center', p: 4 }}>
+              No holdings yet. Add your first holding above.
+            </Typography>
+          ) : (
+            holdings.map((holding) => (
+              <Box
+                key={holding.id}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 2,
+                  mb: 1,
+                  backgroundColor: 'background.default',
+                  borderRadius: 2,
+                  marginTop: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {holding.symbol}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {holding.name} • {holding.shares} shares
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    ${holding.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </Typography>
+                  <Chip
+                    label={`${holding.changePercent >= 0 ? '+' : ''}${holding.changePercent.toFixed(2)}%`}
+                    size="small"
+                    sx={{
+                      backgroundColor: holding.changePercent >= 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: holding.changePercent >= 0 ? 'success.main' : 'error.main',
+                      fontWeight: 600,
+                    }}
+                  />
+                </Box>
+              </Box>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* News Feed Section */}
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ArticleIcon />
+            Market News
+          </Typography>
+          {isLoadingNews ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : news.length === 0 ? (
+            <Typography color="text.secondary" sx={{ textAlign: 'center', p: 4 }}>
+              No news available at the moment.
+            </Typography>
+          ) : (
+            news.map((item) => (
+              <Box
+                key={item.id}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  backgroundColor: 'background.default',
+                  borderRadius: 2,
+                  '&:last-child': { mb: 0 },
+                }}
+              >
+                <Link
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    textDecoration: 'none',
+                    color: 'text.primary',
+                    '&:hover': {
+                      color: 'primary.main',
+                    },
+                  }}
+                >
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    {item.title}
+                  </Typography>
+                </Link>
+                <Typography variant="caption" color="text.secondary">
+                  {item.source} • {new Date(item.publishedAt).toLocaleDateString()}
+                </Typography>
+              </Box>
+            ))
+          )}
         </CardContent>
       </Card>
     </Box>
