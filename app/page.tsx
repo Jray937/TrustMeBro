@@ -15,7 +15,6 @@ import {
   Avatar,
   Chip,
   Paper,
-  Stack,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -366,7 +365,7 @@ export default function Home() {
 
     const handleSendMessage = () => {
       if (chatInput.trim()) {
-        setChatMessages([...chatMessages, `You: ${chatInput}`, 'Bot: Trust me bro, that\'s a great trade!']);
+        setChatMessages([...chatMessages, `You: ${chatInput}`, "Bot: Trust me bro, that's a great trade!"]);
         setChatInput('');
       }
     };
