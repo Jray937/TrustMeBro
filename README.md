@@ -49,11 +49,11 @@ When deploying to Cloudflare Pages, make sure to configure the following environ
 1. Go to your Cloudflare Pages project dashboard
 2. Navigate to **Settings** > **Environment variables**
 3. Add the following variables for both **Production** and **Preview** environments:
-   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key
-   - `CLERK_SECRET_KEY`: Your Clerk secret key
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Your Clerk publishable key (required at build time for client-side code)
+   - `CLERK_SECRET_KEY`: Your Clerk secret key (required at runtime for server-side authentication)
    - `NEXT_PUBLIC_API_URL`: Your backend API URL
 
-**Note:** The build will fail if these environment variables are not configured, as Clerk requires valid keys during the build process.
+**Note:** At minimum, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` must be configured for the build to succeed. The `CLERK_SECRET_KEY` is required at runtime for authentication to work properly.
 
 ## Learn More
 

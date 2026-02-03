@@ -42,12 +42,7 @@ export default function RootLayout({
       }}
     >
       <html lang="en">
-        <body
-          style={{
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-          className="antialiased"
-        >
+        <body className="antialiased">
           <Providers>{children}</Providers>
         </body>
       </html>
