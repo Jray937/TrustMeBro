@@ -98,7 +98,12 @@ export default function Home() {
         });
         if (response.ok) {
           const data = await response.json();
-          setHoldings(data);
+          if (Array.isArray(data)) {
+            setHoldings(data);
+          } else {
+            setHoldings([]);
+            setHoldingsError('Unexpected holdings response format');
+          }
         } else {
           setHoldingsError(`Failed to fetch holdings: ${response.status} ${response.statusText}`);
         }
@@ -127,7 +132,12 @@ export default function Home() {
         });
         if (response.ok) {
           const data = await response.json();
-          setNews(data);
+          if (Array.isArray(data)) {
+            setNews(data);
+          } else {
+            setNews([]);
+            setNewsError('Unexpected news response format');
+          }
         } else {
           setNewsError(`Failed to fetch news: ${response.status} ${response.statusText}`);
         }
@@ -232,7 +242,8 @@ export default function Home() {
 
   const totalValue = holdings.reduce((sum, h) => sum + h.value, 0);
   const totalChange = holdings.reduce((sum, h) => sum + h.change, 0);
-  const totalChangePercent = (totalChange / (totalValue - totalChange)) * 100;
+  const denominator = totalValue - totalChange;
+  const totalChangePercent = denominator !== 0 ? (totalChange / denominator) * 100 : 0;
 
   // Sidebar content
   const drawer = (
