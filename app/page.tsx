@@ -35,7 +35,7 @@ import {
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
-const DEFAULT_API_URL = 'http://localhost:8787';
+const DEFAULT_API_URL = 'https://api.uncle.tmb-capital.com';
 const STOCK_SEARCH_DEBOUNCE_MS = 300;
 
 interface Holding {
