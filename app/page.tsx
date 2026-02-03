@@ -35,6 +35,8 @@ import {
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
+const DEFAULT_API_URL = 'http://localhost:8787';
+const STOCK_SEARCH_DEBOUNCE_MS = 300;
 
 interface Holding {
   id: string;
@@ -80,7 +82,7 @@ export default function Home() {
   const [newsError, setNewsError] = useState<string | null>(null);
   const [addHoldingError, setAddHoldingError] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL;
 
   // Fetch holdings from backend
   useEffect(() => {
@@ -172,7 +174,7 @@ export default function Home() {
       }
     };
 
-    const timeoutId = setTimeout(searchStocks, 300);
+    const timeoutId = setTimeout(searchStocks, STOCK_SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timeoutId);
   }, [searchQuery, apiUrl, getToken]);
 
