@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isProtectedRoute = createRouteMatcher(['/']);
+const isProtectedRoute = createRouteMatcher([]); // Empty array means no routes are protected
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {

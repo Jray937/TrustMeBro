@@ -90,7 +90,7 @@ export default function Home() {
       setIsLoadingHoldings(true);
       setHoldingsError(null);
       try {
-        const token = await getToken();
+        const token = 'demo-token'; // await getToken();
         const response = await fetch(`${apiUrl}/api/holdings`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -124,7 +124,7 @@ export default function Home() {
       setIsLoadingNews(true);
       setNewsError(null);
       try {
-        const token = await getToken();
+        const token = 'demo-token'; // await getToken();
         const response = await fetch(`${apiUrl}/api/news`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -163,7 +163,7 @@ export default function Home() {
 
       setIsSearchingStocks(true);
       try {
-        const token = await getToken();
+        const token = 'demo-token'; // await getToken();
         const response = await fetch(`${apiUrl}/api/search?query=${encodeURIComponent(searchQuery)}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -197,7 +197,7 @@ export default function Home() {
       setIsAddingHolding(true);
       setAddHoldingError(null);
       try {
-        const token = await getToken();
+        const token = 'demo-token'; // await getToken();
         const response = await fetch(`${apiUrl}/api/holdings`, {
           method: 'POST',
           headers: {
