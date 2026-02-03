@@ -505,7 +505,8 @@ export default function Home() {
     useEffect(() => {
       const checkHealth = async () => {
         try {
-          const response = await fetch('http://localhost:8787/api/health');
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+          const response = await fetch(`${apiUrl}/api/health`);
           if (response.ok) {
             setStatus('healthy');
           } else {
