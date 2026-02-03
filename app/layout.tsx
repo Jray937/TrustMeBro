@@ -10,6 +10,9 @@ export const metadata: Metadata = {
 // Force dynamic rendering for authentication
 export const dynamic = 'force-dynamic';
 
+// Use Edge Runtime for Cloudflare Pages compatibility
+export const runtime = 'edge';
+
 export default function RootLayout({
   children,
 }: Readonly<{
