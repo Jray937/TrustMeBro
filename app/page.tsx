@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Drawer,
@@ -15,6 +15,8 @@ import {
   Avatar,
   Chip,
   Paper,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -23,6 +25,9 @@ import {
   ShowChart as ShowChartIcon,
   AccountCircle,
   Add as AddIcon,
+  MonitorHeart as HealthIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -140,10 +145,26 @@ export default function Home() {
             '&:hover': {
               backgroundColor: 'rgba(59, 130, 246, 0.15)',
             },
+            mb: 1,
           }}
           onClick={() => setCurrentTab(2)}
         >
           Trading
+        </Button>
+        <Button
+          fullWidth
+          startIcon={<HealthIcon />}
+          sx={{
+            justifyContent: 'flex-start',
+            color: currentTab === 3 ? 'primary.main' : 'text.secondary',
+            backgroundColor: currentTab === 3 ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+            '&:hover': {
+              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            },
+          }}
+          onClick={() => setCurrentTab(3)}
+        >
+          System Health
         </Button>
       </Box>
     </Box>
@@ -258,6 +279,7 @@ export default function Home() {
                 mb: 1,
                 backgroundColor: 'background.default',
                 borderRadius: 2,
+                marginTop: 2,
               }}
             >
               <Box>
@@ -409,7 +431,7 @@ export default function Home() {
                   }}
                 >
                   <iframe
-                    src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${selectedTicker}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=0f172a&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&hide_side_toolbar=0`}
+                    src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${selectedTicker}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=0f172a&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${selectedTicker}`}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -471,6 +493,73 @@ export default function Home() {
             </Card>
           </Box>
         </Box>
+      </Box>
+    );
+  };
+
+  // Health Tab Content
+  const HealthTab = () => {
+    const [status, setStatus] = useState<'loading' | 'healthy' | 'unhealthy'>('loading');
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+      const checkHealth = async () => {
+        try {
+          const response = await fetch('http://localhost:8787/api/health');
+          if (response.ok) {
+            setStatus('healthy');
+          } else {
+            setStatus('unhealthy');
+            setError(`HTTP Error: ${response.status}`);
+          }
+        } catch (err) {
+          setStatus('unhealthy');
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
+      };
+
+      checkHealth();
+    }, []);
+
+    return (
+      <Box>
+        <Typography variant="h4" sx={{ mb: 3 }}>
+          System Health
+        </Typography>
+        <Card sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, textAlign: 'center' }}>
+            {status === 'loading' && (
+              <Box>
+                <CircularProgress size={60} sx={{ mb: 3 }} />
+                <Typography variant="h6">Checking connection to Uncle backend...</Typography>
+              </Box>
+            )}
+
+            {status === 'healthy' && (
+              <Box>
+                <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+                <Typography variant="h5" color="success.main" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  System Healthy
+                </Typography>
+                <Typography color="text.secondary">
+                  Successfully connected to the backend API. All systems operational.
+                </Typography>
+              </Box>
+            )}
+
+            {status === 'unhealthy' && (
+              <Box sx={{ width: '100%' }}>
+                <ErrorIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+                <Typography variant="h5" color="error.main" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  Connection Failed
+                </Typography>
+                <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
+                  {error || 'Could not connect to the backend service.'}
+                </Alert>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
       </Box>
     );
   };
@@ -539,7 +628,7 @@ export default function Home() {
               <MenuIcon />
             </IconButton>
             <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-              {currentTab === 0 ? 'Portfolio' : currentTab === 1 ? 'Heatmap' : 'Trading'}
+              {currentTab === 0 ? 'Portfolio' : currentTab === 1 ? 'Heatmap' : currentTab === 2 ? 'Trading' : 'System Health'}
             </Typography>
             <IconButton color="inherit">
               <Avatar sx={{ width: 32, height: 32, backgroundColor: 'primary.main' }}>
@@ -554,6 +643,7 @@ export default function Home() {
           {currentTab === 0 && <PortfolioTab />}
           {currentTab === 1 && <HeatmapTab />}
           {currentTab === 2 && <TradingTab />}
+          {currentTab === 3 && <HealthTab />}
         </Box>
       </Box>
     </Box>
