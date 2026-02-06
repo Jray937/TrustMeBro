@@ -131,7 +131,7 @@ export default function Home() {
 
   const handleAddHolding = async () => {
     if (!newSymbol || !newName || !newShares || !newAvgPrice) {
-      setHoldingsError('Please fill in Symbol, Name, Shares, and Average Price');
+      setHoldingsError('Please fill in symbol, name, shares, and average price');
       return;
     }
 
