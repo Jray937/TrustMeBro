@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Drawer,
@@ -32,7 +32,6 @@ import {
 
 const drawerWidth = 240;
 
-// Mock data for portfolio holdings
 interface Holding {
   id: string;
   symbol: string;
@@ -45,51 +44,148 @@ interface Holding {
   changePercent: number;
 }
 
-const mockHoldings: Holding[] = [
-  { id: '1', symbol: 'AAPL', name: 'Apple Inc.', shares: 50, avgPrice: 150, currentPrice: 175, value: 8750, change: 1250, changePercent: 16.67 },
-  { id: '2', symbol: 'GOOGL', name: 'Alphabet Inc.', shares: 30, avgPrice: 2800, currentPrice: 2950, value: 88500, change: 4500, changePercent: 5.36 },
-  { id: '3', symbol: 'MSFT', name: 'Microsoft Corp.', shares: 40, avgPrice: 300, currentPrice: 320, value: 12800, change: 800, changePercent: 6.67 },
-  { id: '4', symbol: 'TSLA', name: 'Tesla Inc.', shares: 25, avgPrice: 700, currentPrice: 680, value: 17000, change: -500, changePercent: -2.86 },
-  { id: '5', symbol: 'NVDA', name: 'NVIDIA Corp.', shares: 35, avgPrice: 450, currentPrice: 520, value: 18200, change: 2450, changePercent: 15.56 },
-];
+interface ApiHolding {
+  id: string | number;
+  symbol: string;
+  name: string;
+  shares: number;
+  avg_price: number;
+  avgPrice?: number;
+  currentPrice?: number;
+  priceData?: {
+    last?: number;
+    lastPrice?: number;
+  };
+}
 
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
-  const [holdings, setHoldings] = useState<Holding[]>(mockHoldings);
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [loadingHoldings, setLoadingHoldings] = useState(true);
+  const [holdingsError, setHoldingsError] = useState<string | null>(null);
   const [newSymbol, setNewSymbol] = useState('');
+  const [newName, setNewName] = useState('');
   const [newShares, setNewShares] = useState('');
+  const [newAvgPrice, setNewAvgPrice] = useState('');
+  const [addingHolding, setAddingHolding] = useState(false);
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+
+  const transformHoldings = (data: ApiHolding[]): Holding[] => {
+    return data.map((item) => {
+      const avgPrice = Number(item.avg_price ?? item.avgPrice ?? 0);
+      const shares = Number(item.shares ?? 0);
+      const currentPrice = Number(
+        item.currentPrice ??
+          item.priceData?.last ??
+          item.priceData?.lastPrice ??
+          avgPrice,
+      );
+      const value = currentPrice * shares;
+      const change = (currentPrice - avgPrice) * shares;
+      const changePercent =
+        avgPrice > 0 ? ((currentPrice - avgPrice) / avgPrice) * 100 : 0;
+
+      return {
+        id: String(item.id),
+        symbol: item.symbol,
+        name: item.name,
+        shares,
+        avgPrice,
+        currentPrice,
+        value,
+        change,
+        changePercent,
+      };
+    });
+  };
+
+  const fetchHoldings = useCallback(async () => {
+    setLoadingHoldings(true);
+    setHoldingsError(null);
+    try {
+      const response = await fetch(`${apiUrl}/api/holdings`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data: ApiHolding[] = await response.json();
+      setHoldings(transformHoldings(data || []));
+    } catch (err) {
+      setHoldings([]);
+      setHoldingsError(
+        err instanceof Error ? err.message : 'Failed to load holdings',
+      );
+    } finally {
+      setLoadingHoldings(false);
+    }
+  }, [apiUrl]);
+
+  useEffect(() => {
+    fetchHoldings();
+  }, [fetchHoldings]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleAddHolding = () => {
-    if (newSymbol && newShares) {
-      const shares = parseFloat(newShares);
-      const mockPrice = Math.random() * 500 + 50;
-      const newHolding: Holding = {
-        id: Date.now().toString(),
-        symbol: newSymbol.toUpperCase(),
-        name: `${newSymbol.toUpperCase()} Company`,
-        shares: shares,
-        avgPrice: mockPrice,
-        currentPrice: mockPrice * (1 + (Math.random() * 0.2 - 0.1)),
-        value: shares * mockPrice,
-        change: 0,
-        changePercent: 0,
-      };
-      newHolding.change = newHolding.value - (newHolding.shares * newHolding.avgPrice);
-      newHolding.changePercent = (newHolding.change / (newHolding.shares * newHolding.avgPrice)) * 100;
-      setHoldings([...holdings, newHolding]);
+  const handleAddHolding = async () => {
+    if (!newSymbol || !newName || !newShares || !newAvgPrice) {
+      setHoldingsError('Please fill in symbol, name, shares, and average price');
+      return;
+    }
+
+    const sharesNumber = parseFloat(newShares);
+    const avgPriceNumber = parseFloat(newAvgPrice);
+
+    if (Number.isNaN(sharesNumber) || Number.isNaN(avgPriceNumber)) {
+      setHoldingsError('Shares and average price must be valid numbers');
+      return;
+    }
+
+    setHoldingsError(null);
+    setAddingHolding(true);
+    try {
+      const response = await fetch(`${apiUrl}/api/holdings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          symbol: newSymbol.toUpperCase(),
+          name: newName,
+          shares: sharesNumber,
+          avg_price: avgPriceNumber,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const errorMessage =
+          errorBody?.error || `Failed to add holding (HTTP ${response.status})`;
+        throw new Error(errorMessage);
+      }
+
+      await fetchHoldings();
       setNewSymbol('');
+      setNewName('');
       setNewShares('');
+      setNewAvgPrice('');
+    } catch (err) {
+      setHoldingsError(
+        err instanceof Error ? err.message : 'Failed to add holding',
+      );
+    } finally {
+      setAddingHolding(false);
     }
   };
 
   const totalValue = holdings.reduce((sum, h) => sum + h.value, 0);
   const totalChange = holdings.reduce((sum, h) => sum + h.change, 0);
-  const totalChangePercent = (totalChange / (totalValue - totalChange)) * 100;
+  const costBasis = holdings.reduce((sum, h) => sum + h.avgPrice * h.shares, 0);
+  const totalChangePercent = costBasis
+    ? (totalChange / costBasis) * 100
+    : 0;
 
   // Sidebar content
   const drawer = (
@@ -244,6 +340,14 @@ export default function Home() {
               sx={{ flex: 1, minWidth: 150 }}
             />
             <TextField
+              label="Name"
+              variant="outlined"
+              size="small"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              sx={{ flex: 1, minWidth: 200 }}
+            />
+            <TextField
               label="Shares"
               variant="outlined"
               size="small"
@@ -252,14 +356,29 @@ export default function Home() {
               onChange={(e) => setNewShares(e.target.value)}
               sx={{ flex: 1, minWidth: 150 }}
             />
+            <TextField
+              label="Average Price"
+              variant="outlined"
+              size="small"
+              type="number"
+              value={newAvgPrice}
+              onChange={(e) => setNewAvgPrice(e.target.value)}
+              sx={{ flex: 1, minWidth: 180 }}
+            />
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleAddHolding}
+              disabled={addingHolding}
             >
-              Add
+              {addingHolding ? 'Adding...' : 'Add'}
             </Button>
           </Box>
+          {holdingsError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {holdingsError}
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
@@ -268,7 +387,20 @@ export default function Home() {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Holdings
           </Typography>
-          {holdings.map((holding) => (
+          {loadingHoldings && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+          {!loadingHoldings && holdingsError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {holdingsError}
+            </Alert>
+          )}
+          {!loadingHoldings && !holdingsError && holdings.length === 0 && (
+            <Typography color="text.secondary">No holdings found.</Typography>
+          )}
+          {!loadingHoldings && holdings.map((holding) => (
             <Box
               key={holding.id}
               sx={{
@@ -287,7 +419,7 @@ export default function Home() {
                   {holding.symbol}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {holding.name} • {holding.shares} shares
+                  {holding.name} • {holding.shares} shares @ ${holding.avgPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
@@ -313,7 +445,7 @@ export default function Home() {
 
   // Heatmap Tab Content
   const HeatmapTab = () => {
-    const maxValue = Math.max(...holdings.map(h => h.value));
+    const maxValue = holdings.length ? Math.max(...holdings.map(h => h.value)) : 0;
     
     return (
       <Box>
@@ -330,7 +462,7 @@ export default function Home() {
               }}
             >
               {holdings.map((holding) => {
-                const size = Math.max(100, (holding.value / maxValue) * 300);
+                const size = maxValue > 0 ? Math.max(100, (holding.value / maxValue) * 300) : 120;
                 return (
                   <Paper
                     key={holding.id}
@@ -377,13 +509,19 @@ export default function Home() {
   };
 
   // Trading Tab Content
-  const TradingTab = () => {
-    const [selectedTicker, setSelectedTicker] = useState('AAPL');
+  const TradingTab = ({ holdings }: { holdings: Holding[] }) => {
+    const [selectedTicker, setSelectedTicker] = useState('');
     const [chatMessages, setChatMessages] = useState<string[]>([
       'Welcome to Trust Me Bro Trading!',
       'Select a ticker to view its chart.',
     ]);
     const [chatInput, setChatInput] = useState('');
+
+    useEffect(() => {
+      if (holdings.length && !selectedTicker) {
+        setSelectedTicker(holdings[0].symbol);
+      }
+    }, [holdings, selectedTicker]);
 
     const handleSendMessage = () => {
       if (chatInput.trim()) {
@@ -430,16 +568,22 @@ export default function Home() {
                     justifyContent: 'center',
                   }}
                 >
-                  <iframe
-                    src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${selectedTicker}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=0f172a&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${selectedTicker}`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      border: 'none',
-                      borderRadius: 8,
-                    }}
-                    title="TradingView Chart"
-                  />
+                  {selectedTicker ? (
+                    <iframe
+                      src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${selectedTicker}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=0f172a&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${selectedTicker}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        borderRadius: 8,
+                      }}
+                      title="TradingView Chart"
+                    />
+                  ) : (
+                    <Typography color="text.secondary">
+                      Add a holding to view its chart.
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -643,7 +787,7 @@ export default function Home() {
         <Box sx={{ p: 3 }}>
           {currentTab === 0 && <PortfolioTab />}
           {currentTab === 1 && <HeatmapTab />}
-          {currentTab === 2 && <TradingTab />}
+          {currentTab === 2 && <TradingTab holdings={holdings} />}
           {currentTab === 3 && <HealthTab />}
         </Box>
       </Box>
