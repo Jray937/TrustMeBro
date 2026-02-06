@@ -419,12 +419,15 @@ export default function Home() {
                   {holding.symbol}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {holding.name} • {holding.shares} shares @ ${holding.avgPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {holding.name} • {holding.shares} shares
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Cost: ${holding.avgPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  ${holding.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  Latest: ${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Typography>
                 <Chip
                   label={`${holding.changePercent >= 0 ? '+' : ''}${holding.changePercent.toFixed(2)}%`}
